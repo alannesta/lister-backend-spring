@@ -38,7 +38,7 @@ public class MovieService {
     public void quickTest() {
         DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-        jdbcTemplate.query("SELECT date_created FROM videos WHERE id = 111142", new RowCallbackHandler() {
+        jdbcTemplate.query("SELECT date_created FROM videos WHERE id = 1026", new RowCallbackHandler() {
             @Override
             public void processRow(java.sql.ResultSet res) throws SQLException {
                 try {
