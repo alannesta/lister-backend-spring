@@ -15,6 +15,7 @@ import com.google.api.services.analyticsreporting.v4.model.GetReportsRequest;
 import com.google.api.services.analyticsreporting.v4.model.GetReportsResponse;
 import com.google.api.services.analyticsreporting.v4.model.Metric;
 import com.google.api.services.analyticsreporting.v4.model.MetricHeaderEntry;
+import com.google.api.services.analyticsreporting.v4.model.OrderBy;
 import com.google.api.services.analyticsreporting.v4.model.Report;
 import com.google.api.services.analyticsreporting.v4.model.ReportRequest;
 import com.google.api.services.analyticsreporting.v4.model.ReportRow;
@@ -24,6 +25,8 @@ import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import javax.swing.*;
 
 public class TestApi {
     private static final String APPLICATION_NAME = "Hello Analytics Reporting";
@@ -53,7 +56,7 @@ public class TestApi {
 
         HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
         GoogleCredential credential = GoogleCredential
-                //.fromStream(new FileInputStream(KEY_FILE_LOCATION))
+                // .fromStream(new FileInputStream(KEY_FILE_LOCATION)
                 .fromStream(TestApi.class.getResourceAsStream(KEY_FILE_LOCATION))
                 .createScoped(AnalyticsReportingScopes.all());
 
@@ -72,22 +75,30 @@ public class TestApi {
     private static GetReportsResponse getReport(AnalyticsReporting service) throws IOException {
         // Create the DateRange object.
         DateRange dateRange = new DateRange();
-        dateRange.setStartDate("30DaysAgo");
-        dateRange.setEndDate("today");
+        dateRange.setStartDate("2017-11-01");
+        dateRange.setEndDate("2018-08-31");
 
         // Create the Metrics object.
-        Metric sessions = new Metric()
-                .setExpression("ga:sessions")
-                .setAlias("sessions");
+        Metric parseCount = new Metric()
+                .setExpression("ga:uniqueEvents")
+                .setAlias("count");
 
-        Dimension pageTitle = new Dimension().setName("ga:pageTitle");
+        Dimension eventName = new Dimension().setName("ga:eventLabel");
+
+        OrderBy orderBy = new OrderBy();
+        orderBy.setFieldName("ga:uniqueEvents");
+        orderBy.setSortOrder("descending");
+
+        String filterExpression = "ga:eventAction==parse movie";
 
         // Create the ReportRequest object.
         ReportRequest request = new ReportRequest()
                 .setViewId(VIEW_ID)
                 .setDateRanges(Arrays.asList(dateRange))
-                .setMetrics(Arrays.asList(sessions))
-                .setDimensions(Arrays.asList(pageTitle));
+                .setMetrics(Arrays.asList(parseCount))
+                .setFiltersExpression(filterExpression)
+                .setOrderBys(Arrays.asList(orderBy))
+                .setDimensions(Arrays.asList(eventName));
 
         ArrayList<ReportRequest> requests = new ArrayList<ReportRequest>();
         requests.add(request);
