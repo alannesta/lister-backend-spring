@@ -25,8 +25,11 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,6 +40,7 @@ public class AnalyticsUtil {
     private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
     private static final String KEY_FILE_LOCATION = "/key.json";
     private static final String VIEW_ID = "154153016";
+    private static final Long DATE_SPAN = 30L;    // default date span for leaderboard (30 day leaderboard)
 
     private AnalyticsReporting analyticsReporting;
 
@@ -61,8 +65,11 @@ public class AnalyticsUtil {
     public List<UserFavorite> getUserFavoriteReport() throws IOException {
         // Create the DateRange object.
         DateRange dateRange = new DateRange();
-        dateRange.setStartDate("2018-06-01");
-        dateRange.setEndDate("2018-07-31");
+        LocalDate end = LocalDate.now();
+        LocalDate start = end.minusDays(DATE_SPAN);
+
+        dateRange.setStartDate(start.toString());
+        dateRange.setEndDate(end.toString());
 
         // Create the Metrics object.
         Metric parseCount = new Metric()
@@ -103,17 +110,24 @@ public class AnalyticsUtil {
 
         for (Report report : response.getReports()) {
             for (ReportRow row : report.getData().getRows()) {
-                results.add(toEntity(row));
+                results.add(toEntity(row, end));
             }
         }
         return results;
     }
 
-    private UserFavorite toEntity(ReportRow row) {
+    private UserFavorite toEntity(ReportRow row, LocalDate now) {
         List<String> movieNames = row.getDimensions();
         List<DateRangeValues> parseCounts = row.getMetrics();
         log.debug(movieNames.get(0) + ": " + parseCounts.get(0).getValues().get(0));
-        return null;
+
+        UserFavorite userFavorite = UserFavorite.builder()
+                .movieName(movieNames.get(0))
+                .parseCount(Integer.valueOf(parseCounts.get(0).getValues().get(0)))
+                .dateSpan(DATE_SPAN)
+                .dateUpdated(Date.from(now.atStartOfDay(ZoneId.systemDefault()).toInstant()))
+                .build();
+        return userFavorite;
     }
 
     ///**

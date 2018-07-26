@@ -16,5 +16,5 @@ public class UserFavorite {
     private int movieID;
     private int parseCount;
     private Date dateUpdated;
-    private int dateSpan;
+    private long dateSpan;
 }
