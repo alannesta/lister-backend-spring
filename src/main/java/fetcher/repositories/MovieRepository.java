@@ -7,4 +7,6 @@ import org.springframework.stereotype.Repository;
 
 
 @Repository
-public interface MovieRepository extends JpaRepository<Movie, Long>, JpaSpecificationExecutor {}
+public interface MovieRepository extends JpaRepository<Movie, Long>, JpaSpecificationExecutor {
+    public Movie findMovieByTitle(String title);
+}
