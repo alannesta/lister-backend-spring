@@ -38,9 +38,9 @@ public class AnalyticsService {
 
             while(it.hasNext()) {
                 LeaderboardRecord record = it.next();
-                Movie movie = movieRepository.findMovieByTitle(record.getMovieName());
-                if (movie != null) {
-                    record.setMovieID(movie.getId());
+                List<Movie> movies = movieRepository.findMoviesByTitle(record.getMovieName());
+                if (movies != null && !movies.isEmpty()) {
+                    record.setMovieID(movies.get(0).getId());
                 } else {
                     it.remove();
                 }

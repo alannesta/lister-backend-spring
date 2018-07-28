@@ -18,7 +18,7 @@ import java.util.Date;
 @AllArgsConstructor
 @Getter
 @Setter
-@Table(name="moovie_leaderboard")
+@Table(name="movie_leaderboard")
 public class LeaderboardRecord {
 
     public LeaderboardRecord() {}
