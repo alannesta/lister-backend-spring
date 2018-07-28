@@ -12,6 +12,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,25 +33,29 @@ public class AnalyticsService {
         try {
 
             List<LeaderboardRecord> reports = analyticsUtil.getUserFavoriteReport();
-            //for (LeaderboardRecord leaderboardRecord : reports) {
-            //    System.out.println(leaderboardRecord.getMovieName());
+
+            Iterator<LeaderboardRecord> it = reports.iterator();
+
+            while(it.hasNext()) {
+                LeaderboardRecord record = it.next();
+                Movie movie = movieRepository.findMovieByTitle(record.getMovieName());
+                if (movie != null) {
+                    record.setMovieID(movie.getId());
+                } else {
+                    it.remove();
+                }
+            }
+
+            //reports = reports.stream().map(leaderboardRecord -> {
             //    Movie movie = movieRepository.findMovieByTitle(leaderboardRecord.getMovieName());
             //    if (movie != null) {
-            //        System.out.println(movie.getId());
-            //        leaderboardRecord.setId(movie.getId());
+            //        leaderboardRecord.setMovieID(movie.getId());
+            //        return leaderboardRecord;
             //    }
-            //}
-
-            reports = reports.stream().map(leaderboardRecord -> {
-                Movie movie = movieRepository.findMovieByTitle(leaderboardRecord.getMovieName());
-                if (movie != null) {
-                    leaderboardRecord.setId(movie.getId());
-                    return leaderboardRecord;
-                }
-                return null;
-            })
-                    .filter(leaderboardRecord -> leaderboardRecord != null)
-                    .collect(Collectors.toList());
+            //    return null;
+            //})
+            //        .filter(leaderboardRecord -> leaderboardRecord != null)
+            //        .collect(Collectors.toList());
 
             System.out.println("Saving reports...");
             leaderboardRepository.saveAll(reports);
