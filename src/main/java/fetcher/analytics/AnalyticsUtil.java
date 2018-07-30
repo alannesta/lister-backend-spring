@@ -32,7 +32,7 @@ import java.util.List;
 @Component
 @Slf4j
 public class AnalyticsUtil {
-    private static final String APPLICATION_NAME = "Hello Analytics Reporting";
+    private static final String APPLICATION_NAME = "Lister Watch Report";
     private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
     private static final String KEY_FILE_LOCATION = "/key.json";
     private static final String VIEW_ID = "154153016";
