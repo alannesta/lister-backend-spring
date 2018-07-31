@@ -68,18 +68,18 @@ public class AnalyticsUtil {
         dateRange.setStartDate(start.toString());
         dateRange.setEndDate(end.toString());
 
-        // Create the Metrics object.
         Metric parseCount = new Metric()
                 .setExpression("ga:uniqueEvents")
                 .setAlias("count");
 
         Dimension eventName = new Dimension().setName("ga:eventLabel");
+        Dimension eventAction = new Dimension().setName("ga:eventAction");
 
         OrderBy orderBy = new OrderBy();
         orderBy.setFieldName("ga:uniqueEvents");
         orderBy.setSortOrder("descending");
 
-        String filterExpression = "ga:eventAction==parse movie";
+        String filterExpression = "ga:eventAction!@search,ga:eventAction!@weichat";
 
         // Create the ReportRequest object.
         ReportRequest request = new ReportRequest()
@@ -88,7 +88,7 @@ public class AnalyticsUtil {
                 .setMetrics(Arrays.asList(parseCount))
                 .setFiltersExpression(filterExpression)
                 .setOrderBys(Arrays.asList(orderBy))
-                .setDimensions(Arrays.asList(eventName));
+                .setDimensions(Arrays.asList(eventName, eventAction));
 
         ArrayList<ReportRequest> requests = new ArrayList<ReportRequest>();
         requests.add(request);
@@ -101,32 +101,44 @@ public class AnalyticsUtil {
         GetReportsResponse response = analyticsReporting.reports().batchGet(getReport).execute();
 
         // Return the response.
-        //return response;
-
-        List<LeaderboardRecord> results = new ArrayList<>();
-
-        for (Report report : response.getReports()) {
-            for (ReportRow row : report.getData().getRows()) {
-                if (Integer.valueOf(row.getMetrics().get(0).getValues().get(0)) >= LEADERBOARD_CRITERIA) {
-                    results.add(toEntity(row, end));
-                }
-            }
-        }
-        return results;
+        return toEntitys(response.getReports().get(0).getData().getRows(), end);
     }
 
-    private LeaderboardRecord toEntity(ReportRow row, LocalDate now) {
-        List<String> movieNames = row.getDimensions();
-        List<DateRangeValues> parseCounts = row.getMetrics();
-        log.debug(movieNames.get(0) + ": " + parseCounts.get(0).getValues().get(0));
+    private List<LeaderboardRecord> toEntitys(List<ReportRow> rows, LocalDate now) {
+        List<LeaderboardRecord> results = new ArrayList<>();
 
-        LeaderboardRecord leaderboardRecord = LeaderboardRecord.builder()
-                .movieName(movieNames.get(0))
-                .parseCount(Integer.valueOf(parseCounts.get(0).getValues().get(0)))
-                .dateSpan(DATE_SPAN)
-                .dateUpdated(Date.from(now.atStartOfDay(ZoneId.systemDefault()).toInstant()))
-                .build();
-        return leaderboardRecord;
+        // first pass, set view count. filter via threshold
+        for (ReportRow row : rows) {
+            List<String> dimensions = row.getDimensions();
+            List<DateRangeValues> counts = row.getMetrics();
+            Integer count = Integer.valueOf(row.getMetrics().get(0).getValues().get(0));
+            //log.debug(movieNames.get(0) + ": " + parseCounts.get(0).getValues().get(0));
+            if (dimensions.get(1).contains("parse") && count >= LEADERBOARD_CRITERIA) {
+                LeaderboardRecord leaderboardRecord = LeaderboardRecord.builder()
+                        .movieName(dimensions.get(0))
+                        .parseCount(count)
+                        .dateSpan(DATE_SPAN)
+                        .dateUpdated(Date.from(now.atStartOfDay(ZoneId.systemDefault()).toInstant()))
+                        .build();
+                results.add(leaderboardRecord);
+            }
+        }
+
+        // second pass, set watch count
+        for (ReportRow row : rows) {
+            List<String> dimensions = row.getDimensions();
+            List<DateRangeValues> counts = row.getMetrics();
+            //log.debug(movieNames.get(0) + ": " + parseCounts.get(0).getValues().get(0));
+            if (dimensions.get(1).contains("watch")) {
+               for (LeaderboardRecord record: results) {
+                   if (record.getMovieName().equals(dimensions.get(0))) {
+                       record.setViewCount(Integer.valueOf(counts.get(0).getValues().get(0)));
+                   }
+               }
+            }
+        }
+
+        return results;
     }
 
     ///**
@@ -166,13 +178,12 @@ public class AnalyticsUtil {
     //    }
     //}
 
-    public static void main(String[] args) {
-        try {
-            AnalyticsUtil util = new AnalyticsUtil();
-
-            util.getUserFavoriteReport();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+    //public static void main(String[] args) {
+    //    try {
+    //        AnalyticsUtil util = new AnalyticsUtil();
+    //        util.getUserFavoriteReport();
+    //    } catch (Exception e) {
+    //        e.printStackTrace();
+    //    }
+    //}
 }
