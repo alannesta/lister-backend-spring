@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 @Slf4j
@@ -36,7 +37,8 @@ public class AnalyticsUtil {
     private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
     private static final String KEY_FILE_LOCATION = "/key.json";
     private static final String VIEW_ID = "154153016";
-    private static final Integer LEADERBOARD_CRITERIA = 4;
+    private static final Integer PARSE_COUNT_THRESHOLD = 4;
+    private static final Integer VIEW_COUNT_THRESHOLD = 3;
     private static final Long DATE_SPAN = 30L;    // default date span for leaderboard (30 day leaderboard)
 
     private AnalyticsReporting analyticsReporting;
@@ -113,7 +115,7 @@ public class AnalyticsUtil {
             List<DateRangeValues> counts = row.getMetrics();
             Integer count = Integer.valueOf(row.getMetrics().get(0).getValues().get(0));
             //log.debug(movieNames.get(0) + ": " + parseCounts.get(0).getValues().get(0));
-            if (dimensions.get(1).contains("parse") && count >= LEADERBOARD_CRITERIA) {
+            if (dimensions.get(1).contains("parse")) {
                 LeaderboardRecord leaderboardRecord = LeaderboardRecord.builder()
                         .movieName(dimensions.get(0))
                         .parseCount(count)
@@ -138,7 +140,8 @@ public class AnalyticsUtil {
             }
         }
 
-        return results;
+        return results.stream().filter(record -> record.getParseCount() > PARSE_COUNT_THRESHOLD || record
+                .getViewCount() > VIEW_COUNT_THRESHOLD).collect(Collectors.toList());
     }
 
     ///**
