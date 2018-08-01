@@ -27,8 +27,8 @@ public class AnalyticsService {
     @Autowired
     private MovieRepository movieRepository;
 
-    @Scheduled(fixedRate = 100000)
-    //@Scheduled(cron = "0 12 3 */3 * *")
+    //@Scheduled(fixedRate = 100000)
+    @Scheduled(cron = "0 12 3 * * *")
     public List<LeaderboardRecord> getUserFavoriteReport() {
         try {
 
@@ -46,17 +46,6 @@ public class AnalyticsService {
                 }
             }
 
-            //reports = reports.stream().map(leaderboardRecord -> {
-            //    Movie movie = movieRepository.findMovieByTitle(leaderboardRecord.getMovieName());
-            //    if (movie != null) {
-            //        leaderboardRecord.setMovieID(movie.getId());
-            //        return leaderboardRecord;
-            //    }
-            //    return null;
-            //})
-            //        .filter(leaderboardRecord -> leaderboardRecord != null)
-            //        .collect(Collectors.toList());
-
             System.out.println("Saving reports...");
             leaderboardRepository.saveAll(reports);
             return reports;
@@ -67,8 +56,8 @@ public class AnalyticsService {
     }
 
     //@Scheduled(fixedRate = 10000)
-    public void quickTest() {
-        System.out.println("records: ");
-        System.out.println(leaderboardRepository.findAll());
-    }
+    //public void quickTest() {
+    //    System.out.println("records: ");
+    //    System.out.println(leaderboardRepository.findAll());
+    //}
 }
