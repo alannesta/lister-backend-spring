@@ -55,6 +55,7 @@ public class AnalyticsUtil {
                     .setApplicationName(APPLICATION_NAME).build();
         } catch (Exception e) {
             e.printStackTrace();
+            throw new RuntimeException("Fail to initalize analytics reporting client");
         }
 
     }
