@@ -1,5 +1,9 @@
 package fetcher.analytics;
 
+import fetcher.models.LeaderboardRecord;
+import fetcher.services.UserWatchRecord;
+import lombok.extern.slf4j.Slf4j;
+
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.http.HttpTransport;
@@ -14,11 +18,9 @@ import com.google.api.services.analyticsreporting.v4.model.GetReportsRequest;
 import com.google.api.services.analyticsreporting.v4.model.GetReportsResponse;
 import com.google.api.services.analyticsreporting.v4.model.Metric;
 import com.google.api.services.analyticsreporting.v4.model.OrderBy;
-import com.google.api.services.analyticsreporting.v4.model.Report;
 import com.google.api.services.analyticsreporting.v4.model.ReportRequest;
 import com.google.api.services.analyticsreporting.v4.model.ReportRow;
-import fetcher.models.LeaderboardRecord;
-import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -42,6 +44,7 @@ public class AnalyticsUtil {
     private static final Long DATE_SPAN = 30L;    // default date span for leaderboard (30 day leaderboard)
 
     private AnalyticsReporting analyticsReporting;
+    private LocalDate currentTime;
 
     public AnalyticsUtil() {
         try {
@@ -60,16 +63,22 @@ public class AnalyticsUtil {
 
     }
 
-
-
     public List<LeaderboardRecord> getUserFavoriteReport() throws IOException {
+        return toDBEntitys(getReportsResponse().getReports().get(0).getData().getRows());
+    }
+
+    public List<UserWatchRecord> getUserFavoriteReportRPC() throws IOException {
+        return toRPCEntitys(getReportsResponse().getReports().get(0).getData().getRows());
+    }
+
+    private GetReportsResponse getReportsResponse() throws IOException {
         // Create the DateRange object.
         DateRange dateRange = new DateRange();
-        LocalDate end = LocalDate.now();
-        LocalDate start = end.minusDays(DATE_SPAN);
+        currentTime = LocalDate.now();
+        LocalDate start = currentTime.minusDays(DATE_SPAN);
 
         dateRange.setStartDate(start.toString());
-        dateRange.setEndDate(end.toString());
+        dateRange.setEndDate(currentTime.toString());
 
         Metric parseCount = new Metric()
                 .setExpression("ga:uniqueEvents")
@@ -101,16 +110,13 @@ public class AnalyticsUtil {
                 .setReportRequests(requests);
 
         // Call the batchGet method.
-        GetReportsResponse response = analyticsReporting.reports().batchGet(getReport).execute();
-
-        // Return the response.
-        return toEntitys(response.getReports().get(0).getData().getRows(), end);
+        return analyticsReporting.reports().batchGet(getReport).execute();
     }
 
-    private List<LeaderboardRecord> toEntitys(List<ReportRow> rows, LocalDate now) {
+    private List<LeaderboardRecord> toDBEntitys(List<ReportRow> rows) {
         List<LeaderboardRecord> results = new ArrayList<>();
 
-        // first pass, set view count. filter via threshold
+        // first pass, set parse count. filter via threshold
         for (ReportRow row : rows) {
             List<String> dimensions = row.getDimensions();
             List<DateRangeValues> counts = row.getMetrics();
@@ -121,13 +127,13 @@ public class AnalyticsUtil {
                         .movieName(dimensions.get(0))
                         .parseCount(count)
                         .dateSpan(DATE_SPAN)
-                        .dateUpdated(Date.from(now.atStartOfDay(ZoneId.systemDefault()).toInstant()))
+                        .dateUpdated(Date.from(currentTime.atStartOfDay(ZoneId.systemDefault()).toInstant()))
                         .build();
                 results.add(leaderboardRecord);
             }
         }
 
-        // second pass, set watch count
+        // second pass, set view count
         for (ReportRow row : rows) {
             List<String> dimensions = row.getDimensions();
             List<DateRangeValues> counts = row.getMetrics();
@@ -145,49 +151,41 @@ public class AnalyticsUtil {
                 .getViewCount() > VIEW_COUNT_THRESHOLD).collect(Collectors.toList());
     }
 
-    ///**
-    // * Parses and prints the Analytics Reporting API V4 response.
-    // *
-    // * @param response An Analytics Reporting API V4 response.
-    // */
-    //private static void printResponse(GetReportsResponse response) {
-    //
-    //    for (Report report : response.getReports()) {
-    //        ColumnHeader header = report.getColumnHeader();
-    //        List<String> dimensionHeaders = header.getDimensions();
-    //        List<MetricHeaderEntry> metricHeaders = header.getMetricHeader().getMetricHeaderEntries();
-    //        List<ReportRow> rows = report.getData().getRows();
-    //
-    //        if (rows == null) {
-    //            System.out.println("No data found for " + VIEW_ID);
-    //            return;
-    //        }
-    //
-    //        for (ReportRow row : rows) {
-    //            List<String> dimensions = row.getDimensions();
-    //            List<DateRangeValues> metrics = row.getMetrics();
-    //
-    //            for (int i = 0; i < dimensionHeaders.size() && i < dimensions.size(); i++) {
-    //                System.out.println(dimensionHeaders.get(i) + ": " + dimensions.get(i));
-    //            }
-    //
-    //            for (int j = 0; j < metrics.size(); j++) {
-    //                System.out.print("Date Range (" + j + "): ");
-    //                DateRangeValues values = metrics.get(j);
-    //                for (int k = 0; k < values.getValues().size() && k < metricHeaders.size(); k++) {
-    //                    System.out.println(metricHeaders.get(k).getName() + ": " + values.getValues().get(k));
-    //                }
-    //            }
-    //        }
-    //    }
-    //}
+    private List<UserWatchRecord> toRPCEntitys(List<ReportRow> rows) {
+        List<UserWatchRecord> results = new ArrayList<>();
 
-    //public static void main(String[] args) {
-    //    try {
-    //        AnalyticsUtil util = new AnalyticsUtil();
-    //        util.getUserFavoriteReport();
-    //    } catch (Exception e) {
-    //        e.printStackTrace();
-    //    }
-    //}
+        // first pass, set view count. filter via threshold
+        for (ReportRow row : rows) {
+            List<String> dimensions = row.getDimensions();
+            List<DateRangeValues> counts = row.getMetrics();
+            Integer parseCount = Integer.valueOf(row.getMetrics().get(0).getValues().get(0));
+            //log.debug(movieNames.get(0) + ": " + parseCounts.get(0).getValues().get(0));
+            if (dimensions.get(1).contains("parse")) {
+                UserWatchRecord userWatchRecord = UserWatchRecord.newBuilder()
+                        .setMovieName(dimensions.get(0))
+                        .setParseCount(parseCount)
+                        .build();
+                results.add(userWatchRecord);
+            }
+        }
+
+        // second pass, set watch count
+        for (ReportRow row : rows) {
+            List<String> dimensions = row.getDimensions();
+            List<DateRangeValues> counts = row.getMetrics();
+            Integer viewCount = Integer.valueOf(counts.get(0).getValues().get(0));
+            //log.debug(movieNames.get(0) + ": " + parseCounts.get(0).getValues().get(0));
+            if (dimensions.get(1).contains("watch")) {
+                for (UserWatchRecord record: results) {
+                    if (record.getMovieName().equals(dimensions.get(0))) {
+                        record.newBuilderForType().setViewCount(viewCount).build();
+                    }
+                }
+            }
+        }
+
+        return results.stream().filter(record -> record.getParseCount() > PARSE_COUNT_THRESHOLD || record
+                .getViewCount() > VIEW_COUNT_THRESHOLD).collect(Collectors.toList());
+    }
+
 }

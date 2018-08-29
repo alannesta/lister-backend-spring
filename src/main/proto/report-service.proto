@@ -21,7 +21,8 @@ message UserWatchRecord {
     string movieName = 1;
     int32 movieId = 2;
     int64 dateSpan = 3;
-    google.protobuf.Timestamp  dateUpdated = 4;
+    int32 viewCount = 4;
+    int32 parseCount = 5;
 }
 
 message Empty {}
