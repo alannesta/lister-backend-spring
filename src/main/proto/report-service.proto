@@ -1,20 +1,27 @@
 syntax = "proto3";
 
+import "google/protobuf/timestamp.proto";
+
 option java_multiple_files = true;
 option java_package = "fetcher.services";
-option java_outer_classname = "AnalyticsRPCService";
+option java_outer_classname = "RPCService";
 option objc_class_prefix = "FETCHER";
 
 package rpc;
 
-service getReports {
-  rpc getUserFavoriteReport (Empty) returns (UserWatchRecord) {}
+service AnalyticsRPCService {
+  rpc getUserFavoriteReport (Empty) returns (UserWatchRecords) {}
+}
+
+message UserWatchRecords {
+    repeated UserWatchRecord record = 1;
 }
 
 message UserWatchRecord {
     string movieName = 1;
     int32 movieId = 2;
     int64 dateSpan = 3;
+    google.protobuf.Timestamp  dateUpdated = 4;
 }
 
 message Empty {}
