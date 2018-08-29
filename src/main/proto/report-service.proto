@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "fetcher.services";
+option java_outer_classname = "AnalyticsRPCService";
+option objc_class_prefix = "FETCHER";
+
+package rpc;
+
+service getReports {
+  rpc getUserFavoriteReport (Empty) returns (UserWatchRecord) {}
+}
+
+message UserWatchRecord {
+    string movieName = 1;
+    int32 movieId = 2;
+    int64 dateSpan = 3;
+}
+
+message Empty {}
