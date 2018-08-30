@@ -3,16 +3,27 @@ package fetcher.rpc;
 import fetcher.services.AnalyticsRPCServiceImpl;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
+import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationStartedEvent;
+import org.springframework.context.ApplicationListener;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
-public class RPCServer {
+@Component
+@Slf4j
+public class RPCServer implements ApplicationListener<ApplicationStartedEvent> {
+    @Autowired
+    private AnalyticsRPCServiceImpl analyticsRPCServiceImpl;
+
     private Server server;
 
     public void start() throws IOException {
         int port = 9527;
         server = ServerBuilder.forPort(port)
-                .addService(new AnalyticsRPCServiceImpl())
+                .addService(analyticsRPCServiceImpl)
                 .build().start();
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
@@ -40,4 +51,14 @@ public class RPCServer {
         }
     }
 
+    @Override
+    public void onApplicationEvent(ApplicationStartedEvent applicationStartedEvent) {
+        try {
+            log.info("start rpc server");
+            start();
+            blockUntilShutdown();
+        } catch (Exception e) {
+            log.error("fail to start grpc server");
+        }
+    }
 }
