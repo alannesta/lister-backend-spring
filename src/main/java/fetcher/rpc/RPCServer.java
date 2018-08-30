@@ -1,5 +1,6 @@
 package fetcher.rpc;
 
+import fetcher.services.AnalyticsRPCServiceImpl;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 
@@ -11,7 +12,7 @@ public class RPCServer {
     public void start() throws IOException {
         int port = 9527;
         server = ServerBuilder.forPort(port)
-                // .addService()
+                .addService(new AnalyticsRPCServiceImpl())
                 .build().start();
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override

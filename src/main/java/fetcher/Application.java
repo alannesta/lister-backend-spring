@@ -12,15 +12,16 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class Application {
     public static void main(String args[]) {
-        log.info("Fetcher init");
+        log.info("start springboot tomcat");
+        SpringApplication.run(Application.class, args);
+
         try {
+            log.info("start rpc server");
             RPCServer rpcServer = new RPCServer();
             rpcServer.start();
             rpcServer.blockUntilShutdown();
         } catch (Exception e) {
             log.error("fail to start grpc server");
         }
-
-        SpringApplication.run(Application.class, args);
     }
 }
