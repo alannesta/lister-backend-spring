@@ -7,8 +7,10 @@ import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -20,9 +22,13 @@ public class AnalyticsRPCServiceImpl extends AnalyticsRPCServiceGrpc.AnalyticsRP
     @Autowired
     private MovieRepository movieRepository;
 
+    @Override
+    //@Cacheable(cacheNames = "analytics-parse-report-lite", key="#request.hashCode()")
     public void getUserFavoriteReport(Empty request, StreamObserver<UserWatchRecords> responseObserver) {
         try {
+            log.info("not hitting cache for analytics report");
             List<UserWatchRecord> records = analyticsUtil.getUserFavoriteReportRPC();
+            List<UserWatchRecord> results = new ArrayList<>();
 
             Iterator<UserWatchRecord> it = records.iterator();
 
@@ -30,15 +36,13 @@ public class AnalyticsRPCServiceImpl extends AnalyticsRPCServiceGrpc.AnalyticsRP
                 UserWatchRecord record = it.next();
                 List<Movie> movies = movieRepository.findMoviesByTitle(record.getMovieName());
                 if (movies != null && !movies.isEmpty()) {
-                    record.newBuilderForType().setMovieId(movies.get(0).getId());
-                } else {
-                    it.remove();
+                    results.add(record.toBuilder().setMovieId(movies.get(0).getId()).build());
                 }
             }
 
             System.out.println("Sending response...");
 
-            responseObserver.onNext( UserWatchRecords.newBuilder().addAllRecord(records).build());
+            responseObserver.onNext(UserWatchRecords.newBuilder().addAllRecord(results).build());
             responseObserver.onCompleted();
         } catch (Exception e) {
             e.printStackTrace();

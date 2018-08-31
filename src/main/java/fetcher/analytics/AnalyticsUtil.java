@@ -176,16 +176,16 @@ public class AnalyticsUtil {
             Integer viewCount = Integer.valueOf(counts.get(0).getValues().get(0));
             //log.debug(movieNames.get(0) + ": " + parseCounts.get(0).getValues().get(0));
             if (dimensions.get(1).contains("watch")) {
-                for (UserWatchRecord record: results) {
+                results = results.stream().map(record -> {
                     if (record.getMovieName().equals(dimensions.get(0))) {
-                        record.newBuilderForType().setViewCount(viewCount).build();
+                        return record.toBuilder().setViewCount(viewCount).build();
                     }
-                }
+                    return record;
+                }).collect(Collectors.toList());
             }
         }
 
         return results.stream().filter(record -> record.getParseCount() > PARSE_COUNT_THRESHOLD || record
                 .getViewCount() > VIEW_COUNT_THRESHOLD).collect(Collectors.toList());
     }
-
 }
