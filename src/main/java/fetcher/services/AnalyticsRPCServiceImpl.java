@@ -38,13 +38,14 @@ public class AnalyticsRPCServiceImpl extends AnalyticsRPCServiceGrpc.AnalyticsRP
 
             records = cast(redisTemplate.opsForValue().get("parse-report-cache"));
             if (records != null ) {
-                log.debug("cache hit: ", records);
+                log.debug("cache hit: {}", records);
                 responseObserver.onNext(UserWatchRecords.newBuilder().addAllRecord(records).build());
                 responseObserver.onCompleted();
             } else {
                 log.debug("cache does not exist, query analytics API");
                 records = analyticsUtil.getUserFavoriteReportRPC();
                 List<UserWatchRecord> results = new ArrayList<>();
+                log.debug("records : {}", records);
 
                 Iterator<UserWatchRecord> it = records.iterator();
 
