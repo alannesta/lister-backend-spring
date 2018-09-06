@@ -5,17 +5,10 @@ import fetcher.models.Movie;
 import fetcher.repositories.MovieRepository;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -33,72 +26,55 @@ public class AnalyticsRPCServiceImpl extends AnalyticsRPCServiceGrpc.AnalyticsRP
 
     @Override
     public void getUserFavoriteReport(Empty request, StreamObserver<UserWatchRecords> responseObserver) {
+        Query requestV2 = Query.newBuilder().setDateSpan(30L).build();
+        getUserFavoriteReportV2(requestV2, responseObserver);
+    }
+
+
+    @Override
+    public void getUserFavoriteReportV2(Query request, StreamObserver<UserWatchRecords> responseObserver) {
         try {
             List<UserWatchRecord> records;
+            Long dateSpan = request.getDateSpan();
+            String cacheKey = "parse-report-cache::" + dateSpan.toString();
 
-            records = cast(redisTemplate.opsForValue().get("parse-report-cache"));
-            if (records != null ) {
+            records = cast(redisTemplate.opsForValue().get(cacheKey));
+            if (records != null) {
                 log.debug("cache hit: {}", records);
                 responseObserver.onNext(UserWatchRecords.newBuilder().addAllRecord(records).build());
                 responseObserver.onCompleted();
             } else {
                 log.debug("cache does not exist, query analytics API");
-                records = analyticsUtil.getUserFavoriteReportRPC();
+                records = analyticsUtil.getUserFavoriteReportRPC(request.getDateSpan());
                 List<UserWatchRecord> results = new ArrayList<>();
-                log.debug("records : {}", records);
 
                 Iterator<UserWatchRecord> it = records.iterator();
 
-                while(it.hasNext()) {
+                while (it.hasNext()) {
                     UserWatchRecord record = it.next();
                     List<Movie> movies = movieRepository.findMoviesByTitle(record.getMovieName());
                     if (movies != null && !movies.isEmpty()) {
-                        results.add(record.toBuilder().setMovieId(movies.get(0).getId()).build());
+                        results.add(record.toBuilder().setMovieId(movies.get(0).getId())
+                                .setThumbnail(movies.get(0).getThumbnail())
+                                .build());
                     }
                 }
+                log.debug("results : {}", results);
+
 
                 responseObserver.onNext(UserWatchRecords.newBuilder().addAllRecord(results).build());
                 responseObserver.onCompleted();
 
                 // cache in redis
-                redisTemplate.opsForValue().set("parse-report-cache", results);
-                redisTemplate.expire("parse-report-cache", 30, TimeUnit.SECONDS);
+                redisTemplate.opsForValue().set(cacheKey, results);
+                redisTemplate.expire(cacheKey, 30, TimeUnit.SECONDS);
             }
-
-
-
-            //try {
-            //    FileOutputStream fileOut =
-            //            new FileOutputStream("/Users/alancao/git/fetcher-spring-boot/test.ser");
-            //    ObjectOutputStream out = new ObjectOutputStream(fileOut);
-            //    out.writeObject(records);
-            //    out.close();
-            //    fileOut.close();
-            //    System.out.println("Serialized data is saved in /tmp/employee.ser");
-            //} catch (IOException i) {
-            //    i.printStackTrace();
-            //}
-
-            //try {
-            //    log.info("reading from file cache");
-            //    FileInputStream fileIn = new FileInputStream("/Users/alancao/git/fetcher-spring-boot/test.ser");
-            //    ObjectInputStream in = new ObjectInputStream(fileIn);
-            //    records = (List<UserWatchRecord>) in.readObject();
-            //    in.close();
-            //    fileIn.close();
-            //} catch (IOException i) {
-            //    i.printStackTrace();
-            //    return;
-            //} catch (ClassNotFoundException c) {
-            //    System.out.println("class not found exception");
-            //    c.printStackTrace();
-            //    return;
-            //}
 
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
 
     @SuppressWarnings("unchecked")
     private static <T extends List<?>> T cast(Object obj) {

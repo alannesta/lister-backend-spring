@@ -22,6 +22,7 @@ import com.google.api.services.analyticsreporting.v4.model.ReportRequest;
 import com.google.api.services.analyticsreporting.v4.model.ReportRow;
 
 import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -71,11 +72,20 @@ public class AnalyticsUtil {
         return toRPCEntitys(getReportsResponse().getReports().get(0).getData().getRows());
     }
 
+    public List<UserWatchRecord> getUserFavoriteReportRPC(long dateSpan) throws IOException {
+        return toRPCEntitys(getReportsResponse(dateSpan).getReports().get(0).getData().getRows());
+    }
+
     private GetReportsResponse getReportsResponse() throws IOException {
+        return getReportsResponse(30L);
+    }
+
+    private GetReportsResponse getReportsResponse(long dateSpan) throws IOException {
         // Create the DateRange object.
         DateRange dateRange = new DateRange();
         currentTime = LocalDate.now();
-        LocalDate start = currentTime.minusDays(DATE_SPAN);
+        Assert.notNull(dateSpan, "date range cannot be null, eg. 30, 60 days");
+        LocalDate start = currentTime.minusDays(dateSpan);
 
         dateRange.setStartDate(start.toString());
         dateRange.setEndDate(currentTime.toString());
