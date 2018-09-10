@@ -5,11 +5,13 @@ import fetcher.models.Movie;
 import fetcher.repositories.MovieRepository;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -23,6 +25,10 @@ public class AnalyticsRPCServiceImpl extends AnalyticsRPCServiceGrpc.AnalyticsRP
     private MovieRepository movieRepository;
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
+
+    private static final int TOP_K = 5;
+    private static final int PARSE_COEFFICIENT = 1;
+    private static final int VIEW_COEFFICIENT = 2;
 
     @Override
     public void getUserFavoriteReport(Empty request, StreamObserver<UserWatchRecords> responseObserver) {
@@ -55,14 +61,23 @@ public class AnalyticsRPCServiceImpl extends AnalyticsRPCServiceGrpc.AnalyticsRP
                     List<Movie> movies = movieRepository.findMoviesByTitle(record.getMovieName());
                     if (movies != null && !movies.isEmpty()) {
                         results.add(record.toBuilder().setMovieId(movies.get(0).getId())
-                                .setThumbnail(movies.get(0).getThumbnail())
-                                .build());
+                                .setThumbnail(movies.get(0).getThumbnail()).build());
                     }
                 }
                 log.debug("results : {}", results);
 
+                // sort the result in descending order and return top 5
+                results.sort(new Comparator<UserWatchRecord>() {
+                    @Override
+                    public int compare(UserWatchRecord o1, UserWatchRecord o2) {
+                        return o2.getParseCount() * PARSE_COEFFICIENT + o2.getViewCount() * VIEW_COEFFICIENT -
+                                o1.getParseCount() * PARSE_COEFFICIENT + o1.getViewCount() * VIEW_COEFFICIENT;
+                    }
+                });
 
-                responseObserver.onNext(UserWatchRecords.newBuilder().addAllRecord(results).build());
+                int limit = results.size() > TOP_K ? TOP_K : results.size();
+
+                responseObserver.onNext(UserWatchRecords.newBuilder().addAllRecord(results.subList(0, limit)).build());
                 responseObserver.onCompleted();
 
                 // cache in redis
