@@ -46,7 +46,7 @@ public class AnalyticsRPCServiceImpl extends AnalyticsRPCServiceGrpc.AnalyticsRP
 
             records = cast(redisTemplate.opsForValue().get(cacheKey));
             if (records != null) {
-                log.debug("cache hit: {}", records);
+                log.debug("cache hit");
                 responseObserver.onNext(UserWatchRecords.newBuilder().addAllRecord(records).build());
                 responseObserver.onCompleted();
             } else {
@@ -81,8 +81,8 @@ public class AnalyticsRPCServiceImpl extends AnalyticsRPCServiceGrpc.AnalyticsRP
                 responseObserver.onCompleted();
 
                 // cache in redis
-                redisTemplate.opsForValue().set(cacheKey, results);
-                redisTemplate.expire(cacheKey, 30, TimeUnit.SECONDS);
+                redisTemplate.opsForValue().set(cacheKey, new ArrayList<UserWatchRecord>(results.subList(0, limit)));
+                redisTemplate.expire(cacheKey, 24, TimeUnit.HOURS);
             }
 
         } catch (Exception e) {
