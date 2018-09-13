@@ -6,6 +6,7 @@ import io.grpc.ServerBuilder;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
@@ -18,10 +19,12 @@ public class RPCServer implements ApplicationListener<ApplicationStartedEvent> {
     @Autowired
     private AnalyticsRPCServiceImpl analyticsRPCServiceImpl;
 
+    @Value("${grpc.server.port}")
+    private int port;
+
     private Server server;
 
     public void start() throws IOException {
-        int port = 9527;
         server = ServerBuilder.forPort(port)
                 .addService(analyticsRPCServiceImpl)
                 .build().start();

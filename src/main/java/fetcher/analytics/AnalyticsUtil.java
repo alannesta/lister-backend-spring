@@ -40,8 +40,8 @@ public class AnalyticsUtil {
     private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
     private static final String KEY_FILE_LOCATION = "/key.json";
     private static final String VIEW_ID = "154153016";
-    private static final Integer PARSE_COUNT_THRESHOLD = 4;
-    private static final Integer VIEW_COUNT_THRESHOLD = 3;
+    private static final Integer PARSE_COUNT_THRESHOLD = 3;
+    private static final Integer VIEW_COUNT_THRESHOLD = 2;
     private static final Long DATE_SPAN = 30L;    // default date span for leaderboard (30 day leaderboard)
 
     private AnalyticsReporting analyticsReporting;

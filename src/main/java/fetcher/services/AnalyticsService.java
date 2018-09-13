@@ -28,7 +28,6 @@ public class AnalyticsService {
     @Autowired
     private MovieRepository movieRepository;
 
-    //@Scheduled(fixedRate = 100000)
     //@Scheduled(cron = "0 12 3 * * *")
     @Cacheable(cacheNames = "analytics-parse-report")
     public List<LeaderboardRecord> getUserFavoriteReport() {
