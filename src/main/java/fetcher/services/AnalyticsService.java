@@ -8,6 +8,7 @@ import fetcher.repositories.MovieRepository;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -27,11 +28,11 @@ public class AnalyticsService {
     @Autowired
     private MovieRepository movieRepository;
 
-    //@Scheduled(fixedRate = 100000)
-    @Scheduled(cron = "0 12 3 * * *")
+    //@Scheduled(cron = "0 12 3 * * *")
+    @Cacheable(cacheNames = "analytics-parse-report")
     public List<LeaderboardRecord> getUserFavoriteReport() {
         try {
-
+            log.info("not hitting cache");
             List<LeaderboardRecord> reports = analyticsUtil.getUserFavoriteReport();
 
             Iterator<LeaderboardRecord> it = reports.iterator();
@@ -47,17 +48,11 @@ public class AnalyticsService {
             }
 
             System.out.println("Saving reports...");
-            leaderboardRepository.saveAll(reports);
+            //leaderboardRepository.saveAll(reports);
             return reports;
         } catch (Exception e) {
             e.printStackTrace();
         }
         return Collections.emptyList();
     }
-
-    //@Scheduled(fixedRate = 10000)
-    //public void quickTest() {
-    //    System.out.println("records: ");
-    //    System.out.println(leaderboardRepository.findAll());
-    //}
 }

@@ -1,5 +1,6 @@
 package fetcher.controllers;
 
+import fetcher.models.LeaderboardRecord;
 import fetcher.services.AnalyticsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Arrays;
+import java.util.List;
 
 @Slf4j
 @RestController
@@ -32,7 +34,7 @@ public class AnalyticsControlelr {
     }
 
     @GetMapping("/fetch")
-    public void fetch() {
-        analyticsService.getUserFavoriteReport();
+    public List<LeaderboardRecord> fetch() {
+        return analyticsService.getUserFavoriteReport();
     }
 }

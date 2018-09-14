@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "fetcher.services";
+option java_outer_classname = "RPCService";
+option objc_class_prefix = "FETCHER";
+
+package rpc;
+
+service AnalyticsRPCService {
+  rpc getUserFavoriteReport (Empty) returns (UserWatchRecords) {}
+  rpc getUserFavoriteReportV2 (Query) returns (UserWatchRecords) {}
+
+}
+
+message UserWatchRecords {
+    repeated UserWatchRecord record = 1;
+}
+
+message UserWatchRecord {
+    string movieName = 1;
+    int32 movieId = 2;
+    int64 dateSpan = 3;
+    int32 viewCount = 4;
+    int32 parseCount = 5;
+    string thumbnail = 6;
+}
+
+message Empty {}
+
+message Query {
+    int64 dateSpan = 1;
+}
