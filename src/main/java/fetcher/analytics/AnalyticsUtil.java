@@ -149,11 +149,11 @@ public class AnalyticsUtil {
             List<DateRangeValues> counts = row.getMetrics();
             //log.debug(movieNames.get(0) + ": " + parseCounts.get(0).getValues().get(0));
             if (dimensions.get(1).contains("watch")) {
-               for (LeaderboardRecord record: results) {
-                   if (record.getMovieName().equals(dimensions.get(0))) {
-                       record.setViewCount(Integer.valueOf(counts.get(0).getValues().get(0)));
-                   }
-               }
+                for (LeaderboardRecord record : results) {
+                    if (record.getMovieName().equals(dimensions.get(0))) {
+                        record.setViewCount(Integer.valueOf(counts.get(0).getValues().get(0)));
+                    }
+                }
             }
         }
 
@@ -195,7 +195,7 @@ public class AnalyticsUtil {
             }
         }
 
-        return results.stream().filter(record -> record.getParseCount() > PARSE_COUNT_THRESHOLD || record
+        return results.stream().filter(record -> (record.getParseCount() > PARSE_COUNT_THRESHOLD && record.getViewCount() > 0) || record
                 .getViewCount() > VIEW_COUNT_THRESHOLD).collect(Collectors.toList());
     }
 }
